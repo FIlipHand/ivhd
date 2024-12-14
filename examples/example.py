@@ -3,7 +3,13 @@ from time import time
 from matplotlib import pyplot as plt
 from sklearn.datasets import load_digits
 
-from ivhd import IVHD, IVHDGrad
+import os
+import sys
+
+project_root = os.path.abspath(os.path.join(os.getcwd(), ".."))
+sys.path.append(project_root)
+
+from ivhd.ivhd_grad import IVHDGrad
 
 dataset = load_digits()
 X = dataset["data"]
@@ -12,11 +18,10 @@ X = X / 255.0
 # X = X[:30]
 # y = y[:30]
 
-
 ivhd_grad = IVHDGrad(
     steps=1000,
-    nn=5,
-    rn=2,
+    nn=2,
+    rn=1,
     optimizer="adam",
     optimizer_params={"lr": 0.01},
     pos_weight=0.9,

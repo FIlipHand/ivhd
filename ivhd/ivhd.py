@@ -1,6 +1,8 @@
 import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.neighbors import NearestNeighbors
+import faiss
+from typing import Literal
 
 
 class IVHD(BaseEstimator, TransformerMixin):
@@ -53,7 +55,8 @@ class IVHD(BaseEstimator, TransformerMixin):
         lambda_: float = 0.3,
         simulation_steps: int = 200,
         verbose: bool = False,
-        distance: str = 'euclidean'
+        distance: str = 'euclidean',
+        knn_alg: Literal["scikit", "faiss"] = "faiss"
     ) -> None:
         self.n_components = n_components
         self.nn = nn
@@ -115,10 +118,24 @@ class IVHD(BaseEstimator, TransformerMixin):
 
     def _get_nearest_neighbors_indexes(self, X: np.ndarray) -> np.ndarray:
         # for every point in X find indexes of its 'nn' nearest neighbors
-        knn_model = NearestNeighbors(n_neighbors=self.nn + 1)
-        knn_model.fit(X)
-        _, indices = knn_model.kneighbors(X)
-        return indices[:, 1:]
+        match self.knn_alg:
+            case "scikit":
+                knn_model = NearestNeighbors(n_neighbors=self.nn + 1)
+                knn_model.fit(X)
+                _, indices = knn_model.kneighbors(X)
+                return indices[:, 1:]
+            case "faiss":
+                index = faiss.IndexFlatL2(X.shape[1])
+                if (num_gpus := faiss.get_num_gpus()) >= 1:
+                    print(f"Faiss found {num_gpus} GPU(s). We only need one :D")
+                    gpu_res = faiss.StandardGpuResources()
+                    index = faiss.index_cpu_to_gpu(gpu_res, 0, index)
+                index.add(X)
+                _, indices = index.search(X, self.nn + 1)
+                return indices[:, 1:]
+            case _:
+                # This is stupid, TODO rewrite rewrite
+                raise ValueError(f"Invalid argument {self.knn_alg}")
 
     def _get_remote_neighbors_indexes(self, X: np.ndarray) -> np.ndarray:
         # for every point in X sample indices of its 'rn' remote neighbors

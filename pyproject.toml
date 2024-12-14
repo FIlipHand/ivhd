@@ -19,6 +19,9 @@ python = "^3.12"
 numpy = "^2.2.0"
 scikit-learn = "^1.6.0"
 torch = "^2.3.0"
+cython = "^3.0.11"
+pyfftw = "^0.15.0"
+swig = "^4.3.0"
 
 [tool.poetry.group.dev.dependencies]
 jupyter = "^1.1.1"
